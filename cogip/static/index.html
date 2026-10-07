@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Pointeuse COGIP</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 10vh; }
+    #carte { display: inline-block; padding: 2rem 4rem; border-radius: 1rem;
+             background: #ddd; transition: background .3s; }
+    #carte.ok { background: #b7f0b1; }
+    #carte.ko { background: #f5b5b5; }
+    h1 { font-size: 3rem; margin: 0 0 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Pointeuse COGIP</h2>
+  <div id="carte">
+    <h1 id="nom">En attente…</h1>
+    <p id="etat">Présentez votre badge</p>
+    <small id="meta"></small>
+  </div>
+  <script>
+    async function refresh() {
+      try {
+        const r = await fetch("/api/last");
+        if (!r.ok) return;
+        const d = await r.json();
+        document.getElementById("nom").textContent = d.utilisateur;
+        document.getElementById("etat").textContent =
+          d.autorise ? "✅ Accès autorisé" : "⛔ Accès refusé";
+        document.getElementById("meta").textContent =
+          `${d.horodatage} — ${d.zone} — NUID ${d.nuid}`;
+        document.getElementById("carte").className = d.autorise ? "ok" : "ko";
+      } catch (e) { console.error(e); }
+    }
+    setInterval(refresh, 1000);
+    refresh();
+  </script>
+</body>
+</html>
