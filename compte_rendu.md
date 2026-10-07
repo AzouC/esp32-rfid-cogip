@@ -224,4 +224,55 @@ La LED intégrée (GPIO 2) est configurée en sortie dans `setup()`. Dès qu'un 
   3. Mettre en place une authentification par clé d'API (ou jeton) dans les en-têtes HTTP et déployer un reverse proxy chiffré en HTTPS.
 
   ---
-  
+### Question 23 : Configuration des entités et des droits d'accès via Swagger
+
+L'initialisation des enregistrements et des autorisations a été effectuée depuis l'interface interactive Swagger UI accessible à l'adresse `http://localhost:8000/docs`.
+
+#### 1. Création des utilisateurs (`POST /api/users`)
+* **Utilisateur 1 (salarié autorisé) :**
+  * **Corps de la requête :**
+    ```json
+    {
+      "nom": "Dupont",
+      "prenom": "Alice",
+      "email": "alice.dupont@cogip.fr",
+      "actif": true
+    }
+    ```
+  * **Réponse :** Code HTTP `200` — `{"id": 1}`.
+* **Utilisateur 2 (salarié non autorisé) :**
+  * **Corps de la requête :**
+    ```json
+    {
+      "nom": "Martin",
+      "prenom": "Bob",
+      "email": "bob.martin@cogip.fr",
+      "actif": true
+    }
+    ```
+  * **Réponse :** Code HTTP `200` — `{"id": 2}`.
+
+#### 2. Création de la zone (« Salle serveur ») (`POST /api/zones`)
+* **Corps de la requête :**
+  ```json
+  {
+    "nom": "Salle serveur",
+    "description": "Local technique et serveurs informatiques"
+  }
+  ```
+* **Réponse :** Code HTTP `200` — `{"id": 1}`.
+
+#### 3. Attribution des badges RFID (`POST /api/badges`)
+* **Badge d'Alice Dupont (Badge 1) :**
+  * **Corps de la requête :** `{"nuid": "F7CD8E62", "user_id": 1, "actif": true}`
+  * **Réponse :** Code HTTP `200` — Badge associé à l'utilisateur `id: 1`.
+* **Badge de Bob Martin (Badge 2) :**
+  * **Corps de la requête :** `{"nuid": "296906B3", "user_id": 2, "actif": true}`
+  * **Réponse :** Code HTTP `200` — Badge associé à l'utilisateur `id: 2`.
+
+#### 4. Attribution des droits d'accès (`POST /api/access-rights`)
+* **Droit d'accès pour Alice Dupont :**
+  * **Corps de la requête :** `{"user_id": 1, "zone_id": 1}`
+  * **Réponse :** Code HTTP `200` — Droit d'accès accordé pour la zone 1.
+* **Gestion de l'accès pour Bob Martin :**
+  * Conformément au principe du **refus par défaut (*default deny*)**, aucun enregistrement n'a été créé pour l'utilisateur `id: 2`. En l'absence de correspondance dans la table `access_rights`, le système refusera systématiquement l'accès à la « Salle serveur » pour son badge.
