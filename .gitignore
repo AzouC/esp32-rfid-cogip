@@ -1,0 +1,11 @@
+# PlatformIO & VS Code
+.pio/
+.vscode/
+
+# Python & environnements
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets
+.env
