@@ -285,3 +285,15 @@ La persistance des données a été vérifiée directement dans le conteneur Doc
 #### 1. Connexion au conteneur
 ```bash
 docker exec -it cogip-db psql -U cogip -d pointeuse
+
+---
+### Question 25 : Intégration Wi-Fi et transmission HTTP sur l'ESP32
+
+Le programme de l'ESP32 a été enrichi pour intégrer les bibliothèques réseau standard (`WiFi.h` et `HTTPClient.h`) afin de faire communiquer le lecteur RFID avec l'API FastAPI.
+
+#### 1. Organisation du code
+* **Bibliothèques ajoutées :** inclusion de `WiFi.h` pour la pile réseau 802.11 et de `HTTPClient.h` pour la gestion du protocole HTTP client.
+* **Constantes déclarées :** identification du SSID, de la clé WPA/WPA2, de la ressource ciblée (`Salle serveur`) et de l'URI d'API (`/api/scan`).
+* **Initialisation (`setup`) :** établissement de la liaison sans fil via `WiFi.begin()` et attente bloquante jusqu'à l'obtention d'un bail (`WL_CONNECTED`), puis affichage de l'adresse IP locale attribuée.
+* **Formatage du NUID (`nuidToString`) :** conversion de chaque octet hexadécimal lu dans `rfid.uid.uidByte` en chaîne de caractères majuscule, avec ajout d'un zéro initial si l'octet est inférieur à `0x10`.
+* **Émission HTTP (`loop`) :** à chaque détection réussie, une trame HTTP `POST` est générée avec l'en-tête `Content-Type: application/json` et un corps formaté (`{"nuid":"...", "zone":"Salle serveur"}`). Le code retour serveur (200, 403, 404) et le JSON de réponse sont journalisés sur le port série.
