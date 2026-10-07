@@ -14,7 +14,7 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 // Déclaration des constantes réseau et API
 const char* WIFI_SSID = "private_CIEL";
 const char* WIFI_PASS = "24Broce!!Fibre#CIEL";
-const char* API_URL   = "http://192.168.1.777:8000/api/scan"; // À ajuster en Q26
+const char* API_URL   = "http://192.168.1.7:8000/api/scan"; // À ajuster en Q26
 const char* ZONE      = "Salle serveur";
 
 /**

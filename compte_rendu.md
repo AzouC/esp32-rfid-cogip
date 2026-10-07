@@ -297,3 +297,15 @@ Le programme de l'ESP32 a été enrichi pour intégrer les bibliothèques résea
 * **Initialisation (`setup`) :** établissement de la liaison sans fil via `WiFi.begin()` et attente bloquante jusqu'à l'obtention d'un bail (`WL_CONNECTED`), puis affichage de l'adresse IP locale attribuée.
 * **Formatage du NUID (`nuidToString`) :** conversion de chaque octet hexadécimal lu dans `rfid.uid.uidByte` en chaîne de caractères majuscule, avec ajout d'un zéro initial si l'octet est inférieur à `0x10`.
 * **Émission HTTP (`loop`) :** à chaque détection réussie, une trame HTTP `POST` est générée avec l'en-tête `Content-Type: application/json` et un corps formaté (`{"nuid":"...", "zone":"Salle serveur"}`). Le code retour serveur (200, 403, 404) et le JSON de réponse sont journalisés sur le port série.
+
+---
+### Question 26 : Adresse IP du serveur et politique d'adressage
+
+#### 1. Commande utilisée
+* **Sous Linux (VM) :** `hostname -I` (ou `ip a`)
+* **Sous Windows (machine hôte en mode NAT avec redirection de port) :** `ipconfig`
+
+#### 2. Nécessité d'une IP fixe ou d'une réservation DHCP
+L'URI cible de l'API FastAPI est inscrite en dur dans le microprogramme de l'ESP32 (`API_URL`). Dans un réseau configuré en DHCP dynamique sans assignation pérenne, le serveur d'API peut changer d'adresse IP à l'expiration du bail ou après un redémarrage. Cela entraîne la rupture immédiate des communications HTTP de la pointeuse. 
+
+Une adresse IP fixe (ou une réservation statique dans la table du serveur DHCP liée à l'adresse MAC de l'hôte) est indispensable pour garantir la haute disponibilité du système de contrôle d'accès sans exiger une recompilation du firmware embarqué.
