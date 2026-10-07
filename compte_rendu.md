@@ -276,3 +276,12 @@ L'initialisation des enregistrements et des autorisations a été effectuée dep
   * **Réponse :** Code HTTP `200` — Droit d'accès accordé pour la zone 1.
 * **Gestion de l'accès pour Bob Martin :**
   * Conformément au principe du **refus par défaut (*default deny*)**, aucun enregistrement n'a été créé pour l'utilisateur `id: 2`. En l'absence de correspondance dans la table `access_rights`, le système refusera systématiquement l'accès à la « Salle serveur » pour son badge.
+
+  ---
+  ### Question 24 : Vérification du contenu de la base de données PostgreSQL
+
+La persistance des données a été vérifiée directement dans le conteneur Docker à l'aide de l'outil `psql`.
+
+#### 1. Connexion au conteneur
+```bash
+docker exec -it cogip-db psql -U cogip -d pointeuse
