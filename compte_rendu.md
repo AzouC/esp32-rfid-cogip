@@ -426,3 +426,23 @@ Durant la phase d'initialisation et d'anticollision de la norme ISO/IEC 14443-A,
 * **Assimilation à un identifiant public :** Le NUID agit comme un simple numéro de série ou une adresse MAC réseau. C'est une donnée d'identification publique et non un secret d'authentification (mot de passe ou clé privée).
 * **Absence de preuve de possession légitime :** Le NUID pouvant être intercepté à distance à l'insu du salarié (via un smartphone NFC ou une antenne d'écoute), son utilisation exclusive n'offre aucune garantie d'authenticité.
 * **Inadéquation pour les zones sensibles :** Fonder le contrôle d'accès d'un local sécurisé (salle serveur, coffres) sur la simple lecture du NUID expose le système à une usurpation d'identité immédiate. Une authentification robuste requiert un défi-réponse cryptographique (*challenge-response*) exploitant des secteurs chiffrés (normes MIFARE DESFire EV2/EV3 ou AES-128).
+
+---
+---
+
+### Question 32 : Confidentialité du NUID, cartes à UID modifiable (« Magic Cards ») et clonage
+
+#### 1. Caractère public et reproductibilité du NUID
+* **Absence totale de confidentialité :** Le NUID n'est pas un secret. Il est diffusé en clair par radiofréquence sans authentification préalable. Un attaquant peut le capturer en s'approchant à quelques centimètres d'un salarié à l'aide d'un smartphone NFC.
+* **Vulnérabilité à la copie :** Ne reposant sur aucun mécanisme cryptographique dynamique (défi-réponse), un NUID se réduit à une simple chaîne hexadécimale statique de 4 octets copiable à l'identique.
+
+#### 2. Fonctionnement des « Magic Cards » (*Chinese backdoor*)
+* **Protection théorique des puces standard :** Sur les puces officielles MIFARE Classic (NXP), le constructeur bloque le **Bloc 0 du Secteur 0** (données fabricant et UID) en lecture seule matérielle lors de la fabrication.
+* **Contournement par porte dérobée (Backdoor) :** Les cartes dites « *Magic Cards* » (notamment les versions *Gen1a*) exploitent un microprogramme intégrant des commandes non documentées (`0x40` et `0x43`). Ces commandes court-circuitent les restrictions de sécurité et déverrouillent l'écriture sur le bloc 0.
+* **Évolution *Gen2 / CUID* :** Les variantes plus récentes acceptent l'écriture sur le bloc 0 via des commandes de bas niveau standard, rendant la reprogrammation possible directement depuis l'antenne NFC d'un smartphone Android via des applications courantes (ex. *Mifare Classic Tool*).
+
+#### 3. Conséquences pour la sécurité de la COGIP
+L'existence de ces composants rend le clonage d'un badge trivial, rapide et économique (moins de 2 € par badge vierge) :
+1. Capture furtive du NUID d'un collaborateur autorisé (ex. Alice Dupont : `F7CD8E62`).
+2. Flashage immédiat du NUID sur une carte magique.
+3. Présentation du clone devant la pointeuse : le lecteur RC522 et l'API FastAPI ne vérifiant que cette valeur statique, le clone est accepté avec les accès privilégiés associés sans éveiller de soupçon dans la base de données.
