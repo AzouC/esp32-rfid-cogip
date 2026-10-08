@@ -327,3 +327,26 @@ Le tableau de recette ci-dessous présente la validation fonctionnelle de l'ense
 * **Détection RFID & Transmission HTTP :** L'identifiant UID/NUID lu par le capteur MFRC522 est correctement formaté en JSON et envoyé via une requête `POST /api/scan` par l'ESP32.
 * **Traitement API & Base de données :** FastAPI interroge la table PostgreSQL pour vérifier la validité du badge et les autorisations sur la zone cible avant de renvoyer le code `200 OK`.
 * **Supervision temps réel :** La page web (`index.html`) actualise instantanément le nom de l'utilisateur, l'horodatage et le statut d'accès (vert pour accordé, rouge pour refusé).
+
+---
+### Question 28 : Capture et analyse protocolaire Wireshark
+
+Une capture réseau a été réalisée sur l'interface Wi-Fi de la machine hôte lors du passage d'un badge valide afin d'analyser la structure des échanges HTTP.
+
+#### 1. Paramètres de capture
+* **Interface écoutée :** Wi-Fi (`SFR_F2CF`)
+* **Filtre appliqué :** `http && ip.addr == 192.168.1.36`
+* **Hôtes :** ESP32 (`192.168.1.36`) et Serveur API (`192.168.1.5:8000`)
+
+#### 2. Détail des paquets analysés
+
+| Paramètre | Requête (Pointeuse -> API) | Réponse (API -> Pointeuse) |
+|:---|:---|:---|
+| **Trame** | `POST /api/scan HTTP/1.1` | `HTTP/1.1 200 OK` |
+| **Source** | `192.168.1.36` | `192.168.1.5` |
+| **Destination** | `192.168.1.5:8000` | `192.168.1.36` |
+| **Type MIME** | `application/json` | `application/json` |
+| **Payload JSON** | `{"nuid":"F7CD8E62","zone":"Salle serveur"}` | `{"nuid":"F7CD8E62","utilisateur":"Alice Dupont","autorise":true}` |
+
+#### 3. Analyse de sécurité
+Les échanges transitent par le protocole HTTP en clair sans chiffrement TLS. Les identifiants matériels des badges (NUID) et les informations nominatives des salariés circulent en texte brut sur le réseau local, ce qui expose l'infrastructure aux risques d'écoute passive (*sniffing*), d'usurpation d'identité et d'attaques par rejeu.
