@@ -309,3 +309,21 @@ Le programme de l'ESP32 a été enrichi pour intégrer les bibliothèques résea
 L'URI cible de l'API FastAPI est inscrite en dur dans le microprogramme de l'ESP32 (`API_URL`). Dans un réseau configuré en DHCP dynamique sans assignation pérenne, le serveur d'API peut changer d'adresse IP à l'expiration du bail ou après un redémarrage. Cela entraîne la rupture immédiate des communications HTTP de la pointeuse. 
 
 Une adresse IP fixe (ou une réservation statique dans la table du serveur DHCP liée à l'adresse MAC de l'hôte) est indispensable pour garantir la haute disponibilité du système de contrôle d'accès sans exiger une recompilation du firmware embarqué.
+
+---
+### Question 27 : Scénario de recette du système de pointage
+
+Le tableau de recette ci-dessous présente la validation fonctionnelle de l'ensemble de la chaîne de transmission (Lecteur RC522 -> ESP32 -> API FastAPI -> Base PostgreSQL -> Interface Web temps réel) selon les 5 cas de test définis :
+
+| N° | Badge présenté | Zone demandée | Résultat attendu | Résultat obtenu | Validation |
+|:--:|:---|:---|:---|:---|:--:|
+| **1** | Badge A (`F7CD8E62` - droit accordé) | Salle serveur | Autorisé (Alice Dupont) | Accès accordé (Alice Dupont) | **OK** |
+| **2** | Badge inconnu (`A1B2C3D4`) | Salle serveur | Refusé, utilisateur « Inconnu » | Refusé (Badge non déclaré) | **OK** |
+| **3** | Badge B (`296906B3` - droit accordé) | Salle serveur | Autorisé (Bob Martin) | Accès accordé (Bob Martin) | **OK** |
+| **4** | Badge B désactivé (`actif = false`) | Salle serveur | Refusé | Refusé (Badge inactif / révoqué) | **OK** |
+| **5** | Badge A (`F7CD8E62` - droit accordé) | Salle serveur | Autorisé (Alice Dupont) | Accès accordé (Alice Dupont) | **OK** |
+
+#### Observations et validation technique :
+* **Détection RFID & Transmission HTTP :** L'identifiant UID/NUID lu par le capteur MFRC522 est correctement formaté en JSON et envoyé via une requête `POST /api/scan` par l'ESP32.
+* **Traitement API & Base de données :** FastAPI interroge la table PostgreSQL pour vérifier la validité du badge et les autorisations sur la zone cible avant de renvoyer le code `200 OK`.
+* **Supervision temps réel :** La page web (`index.html`) actualise instantanément le nom de l'utilisateur, l'horodatage et le statut d'accès (vert pour accordé, rouge pour refusé).

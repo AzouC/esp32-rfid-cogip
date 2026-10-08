@@ -11,16 +11,12 @@
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-// Déclaration des constantes réseau et API
-const char* WIFI_SSID = "private_CIEL";
-const char* WIFI_PASS = "24Broce!!Fibre#CIEL";
-const char* API_URL   = "http://192.168.1.7:8000/api/scan"; // À ajuster en Q26
+// --- Configuration Réseau et Serveur ---
+const char* WIFI_SSID = "SFR_F2CF";
+const char* WIFI_PASS = "b43wf8svw9d5u3x4sz4s";
+const char* API_URL   = "http://192.168.1.5:8000/api/scan";
 const char* ZONE      = "Salle serveur";
 
-/**
- * Fonction utilitaire pour extraire le NUID sous forme de String
- * à partir de la variable rfid.
- */
 String nuidToString() {
   String s = "";
   for (byte i = 0; i < rfid.uid.size; i++) {
@@ -36,55 +32,59 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
-  // Initialisation du bus SPI et du lecteur RC522
+  // Initialisation SPI et capteur RFID
   SPI.begin();
   rfid.PCD_Init();
 
-  // Initialisation de la connexion Wi-Fi
+  // Connexion Wi-Fi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.print("Connexion Wi-Fi");
+  Serial.print("Connexion au Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.print("\nIP ESP32 : ");
+  Serial.println("\n[OK] Connecte !");
+  Serial.print("IP ESP32 : ");
   Serial.println(WiFi.localIP());
 
-  Serial.println("Pointeuse prête. En attente de badge...");
+  Serial.println("Pointeuse prete. En attente de badge...");
 }
 
 void loop() {
-  // Vérifier la présence d'une carte et lire son identifiant
-  if (!rfid.PICC_IsNewCardPresent())
-    return;
+  // Detection et lecture du badge
+  if (!rfid.PICC_IsNewCardPresent()) return;
+  if (!rfid.PICC_ReadCardSerial()) return;
 
-  if (!rfid.PICC_ReadCardSerial())
-    return;
-
-  // Témoin visuel de lecture (LED intégrée GPIO 2)
+  // Signal visuel immediat
   digitalWrite(LED_PIN, HIGH);
 
-  // Extraction du NUID
   String nuid = nuidToString();
-  Serial.println("NUID: " + nuid);
+  Serial.println("\n--> Badge lu : " + nuid);
 
-  // Envoi de la requête HTTP POST à l'API FastAPI
+  // Transmission HTTP
   if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;
     HTTPClient http;
-    http.begin(API_URL);
+
+    http.setTimeout(3000);
+    http.begin(client, API_URL);
     http.addHeader("Content-Type", "application/json");
 
     String body = "{\"nuid\":\"" + nuid + "\",\"zone\":\"" + ZONE + "\"}";
     int code = http.POST(body);
 
-    Serial.printf("HTTP %d %s\n", code, http.getString().c_str());
+    if (code > 0) {
+      Serial.printf("[HTTP %d] %s\n", code, http.getString().c_str());
+    } else {
+      Serial.printf("[ERREUR] %s (Code : %d)\n", http.errorToString(code).c_str(), code);
+    }
+
     http.end();
   }
 
   delay(500);
   digitalWrite(LED_PIN, LOW);
 
-  // Réinitialiser la communication avec la carte
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
 }
