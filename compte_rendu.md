@@ -388,3 +388,26 @@ Pour optimiser la réactivité et les ressources, la mise en œuvre de **WebSock
 * Établissement d'une connexion TCP persistante et bidirectionnelle après négociation HTTP.
 * Architecture en mode **Push (événementiel)** : le serveur FastAPI émet la trame JSON vers le navigateur uniquement lorsqu'un badge est scanné sur l'ESP32.
 * Suppression totale du trafic réseau au repos et latence de notification quasi instantanée (< 10 ms).
+
+---
+### Question 30 : Indisponibilité du serveur et continuité de service
+
+#### 1. Conséquences actuelles en cas de panne serveur
+Dans l'architecture actuelle, le microcontrôleur ESP32 agit comme un client totalement dépendant du serveur central :
+* **Blocage physique de l'accès :** La décision d'ouverture dépendant entièrement du code retour de l'API, l'échec de la requête HTTP (`code <= 0`) maintient la porte fermée, bloquant le passage des salariés légitimes.
+* **Perte définitive des pointages :** L'ESP32 ne disposant d'aucune mémoire tampon (*buffer*), l'événement de badgeage n'est pas sauvegardé et n'apparaîtra jamais dans l'historique `access_logs`.
+* **Gel du système (*Timeout*) :** La boucle principale reste bloquée pendant l'attente du délai d'expiration TCP (timeout de la socket HTTP), rendant le lecteur RFID inopérant pour les personnes suivantes pendant plusieurs secondes.
+* **Point de défaillance unique (SPOF) :** La disponibilité du contrôle d'accès est tributaire à 100 % du serveur Uvicorn, du conteneur PostgreSQL et du commutateur réseau.
+
+#### 2. Évolutions architecturales proposées
+
+Pour assurer la continuité de service et la résilience du système, une architecture en **mode dégradé autonome (*Store & Forward*)** est préconisée :
+
+1. **Mémoire cache locale des droits (Whitelist embarquée) :**  
+   Enregistrer la liste des badges actifs et de leurs droits d'accès directement dans la mémoire Flash de l'ESP32 (système de fichiers **LittleFS** ou partition **NVS**). Cette base locale est mise à jour périodiquement par le serveur. En cas de rupture réseau, l'ESP32 valide l'accès localement en interrogeant son cache.
+2. **Journalisation locale et synchronisation différée (*Store & Forward*) :**  
+   Si l'API est injoignable, les pointages sont enregistrés dans une file d'attente circulaire sur la mémoire Flash. Dès le rétablissement de la connectivité réseau, l'ESP32 transmet les pointages différés au serveur par paquets (*batch*).
+3. **Module d'horodatage RTC autonome (ex. DS3231) :**  
+   Intégration d'un module d'horloge temps réel avec batterie de secours sur le bus I²C de l'ESP32 pour garantir un horodatage précis et conforme des pointages même hors connexion.
+4. **Redondance de l'infrastructure serveur :**  
+   Mise en place d'un cluster d'API redondé derrière un répartiteur de charge (*Load Balancer Nginx*) et réplication de la base PostgreSQL pour éliminer tout point unique de défaillance.
