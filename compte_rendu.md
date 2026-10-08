@@ -469,3 +469,15 @@ L'existence de ces composants rend le clonage d'un badge trivial, rapide et éco
   * Mesure du temps de propagation aller-retour (*Round Trip Time* / protocoles de *Distance Bounding*) : rejet de la transaction si le délai excède quelques nanosecondes/microsecondes (impossible à respecter si le signal transite par un réseau distant).
   * Double authentification (MFA) combinant le badge avec un code PIN sur clavier ou un contrôle biométrique.
   * Mesure de protection physique : utilisation d'étuis anti-RFID (cage de Faraday) bloquant le champ magnétique au repos.
+
+  ---
+### Question 34 : Recommandation de sécurité pour la Direction des Ressources Humaines
+
+**À l'attention de M. Jean-Régis Pichon, Directeur des Ressources Humaines**
+
+Le prototype conçu valide avec succès le pointage connecté, mais son déploiement doit être strictement restreint selon le niveau de sécurité requis :
+
+* **Usages acceptables :** La gestion du temps de présence des salariés, le suivi des horaires de bureau ou l'accès à des zones à faible enjeu (cafétéria, parking, locaux généraux).
+* **Usages inacceptables :** La sécurisation de zones critiques ou stratégiques (salle des coffres, salle serveurs, locaux d'archives confidentielles).
+
+**Justification :** La technologie actuelle lit un simple numéro de série gravé sur la carte, sans aucun mot de passe ni verrou de sécurité. Ce numéro peut être scanné et dupliqué à l'identique en quelques secondes à l'aide d'un simple smartphone et d'une carte vierge à 1 €. Pour la salle des coffres, ce système équivaudrait à installer une serrure dont tout le monde peut faire un double au supermarché. Pour ces locaux sensibles, il est indispensable d'employer des badges chiffrés infalsifiables (norme MIFARE DESFire), renforcés par un code secret (double facteur) et des flux réseau chiffrés.
