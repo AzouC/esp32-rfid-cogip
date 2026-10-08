@@ -411,3 +411,18 @@ Pour assurer la continuité de service et la résilience du système, une archit
    Intégration d'un module d'horloge temps réel avec batterie de secours sur le bus I²C de l'ESP32 pour garantir un horodatage précis et conforme des pointages même hors connexion.
 4. **Redondance de l'infrastructure serveur :**  
    Mise en place d'un cluster d'API redondé derrière un répartiteur de charge (*Load Balancer Nginx*) et réplication de la base PostgreSQL pour éliminer tout point unique de défaillance.
+
+   ---
+### Question 31 : Échanges en clair ISO/IEC 14443-A et limites de sécurité du NUID
+
+#### 1. Informations transmises sans protection lors de l'anticollision
+Durant la phase d'initialisation et d'anticollision de la norme ISO/IEC 14443-A, l'ensemble des trames circule par voie hertzienne en clair (sans chiffrement ni signature cryptographique) :
+* **L'ATQA (*Answer To Request Type A*) :** vecteur de 2 octets indiquant le format de trame et le type de transpondeur.
+* **Le NUID / UID (*Card Identifier*) :** identifiant matériel sur 4 octets (`F7CD8E62`) transmis par le badge pour permettre au lecteur de l'isoler parmi d'autres badges présents dans le champ électromagnétique.
+* **L'octet BCC (*Bit Collision Check*) :** octet de contrôle de parité (XOR des octets de l'UID).
+* **Le SAK (*Select Acknowledge*) :** octet d'état confirmant la sélection du badge et spécifiant le protocole de niveau supérieur pris en charge.
+
+#### 2. Conclusion sur l'usage du NUID pour l'authentification
+* **Assimilation à un identifiant public :** Le NUID agit comme un simple numéro de série ou une adresse MAC réseau. C'est une donnée d'identification publique et non un secret d'authentification (mot de passe ou clé privée).
+* **Absence de preuve de possession légitime :** Le NUID pouvant être intercepté à distance à l'insu du salarié (via un smartphone NFC ou une antenne d'écoute), son utilisation exclusive n'offre aucune garantie d'authenticité.
+* **Inadéquation pour les zones sensibles :** Fonder le contrôle d'accès d'un local sécurisé (salle serveur, coffres) sur la simple lecture du NUID expose le système à une usurpation d'identité immédiate. Une authentification robuste requiert un défi-réponse cryptographique (*challenge-response*) exploitant des secteurs chiffrés (normes MIFARE DESFire EV2/EV3 ou AES-128).
