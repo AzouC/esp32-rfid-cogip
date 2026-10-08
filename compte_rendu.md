@@ -369,3 +369,22 @@ Une capture réseau a été réalisée sur l'interface Ethernet de la machine h�
 
 #### 3. Analyse de sécurité
 Les échanges transitent par le protocole HTTP en clair sans chiffrement TLS. Les identifiants matériels des badges (NUID) et les informations nominatives des salariés circulent en texte brut sur le réseau local, ce qui expose l'infrastructure aux risques d'écoute passive (*sniffing*), d'usurpation d'identité et d'attaques par rejeu.
+
+---
+---
+
+### Question 29 : Analyse du mécanisme de supervision temps réel (Polling vs WebSocket)
+
+#### 1. Méthode actuellement employée
+La supervision repose sur une technique de **scrutation périodique (*Short Polling*)** via l'API standard JavaScript `fetch()` cadencée par un `setInterval()` toutes les secondes (1 000 ms). Le navigateur interroge en boucle le point de terminaison `GET /api/last` pour vérifier la présence d'un nouvel événement.
+
+#### 2. Inconvénients majeurs de cette approche
+* **Consommation de bande passante et surcharge serveur :** Requêtes répétitives et redondantes générant un surcoût (*overhead*) d'en-têtes HTTP/TCP même en l'absence de pointage, sollicitant inutilement le serveur ASGI et la base PostgreSQL.
+* **Latence intrinsèque :** Le temps de réaction dépend de l'intervalle d'échantillonnage (délai d'affichage pouvant atteindre 1 seconde après le scan physique).
+* **Faible passage à l'échelle (*Scalability*) :** La charge serveur croît de manière linéaire avec le nombre de clients connectés ($N$ postes de supervision = $N$ requêtes/seconde).
+
+#### 3. Solution alternative recommandée : WebSocket
+Pour optimiser la réactivité et les ressources, la mise en œuvre de **WebSockets (`ws://`)** est préconisée :
+* Établissement d'une connexion TCP persistante et bidirectionnelle après négociation HTTP.
+* Architecture en mode **Push (événementiel)** : le serveur FastAPI émet la trame JSON vers le navigateur uniquement lorsqu'un badge est scanné sur l'ESP32.
+* Suppression totale du trafic réseau au repos et latence de notification quasi instantanée (< 10 ms).
