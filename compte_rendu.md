@@ -481,3 +481,27 @@ Le prototype conçu valide avec succès le pointage connecté, mais son déploie
 * **Usages inacceptables :** La sécurisation de zones critiques ou stratégiques (salle des coffres, salle serveurs, locaux d'archives confidentielles).
 
 **Justification :** La technologie actuelle lit un simple numéro de série gravé sur la carte, sans aucun mot de passe ni verrou de sécurité. Ce numéro peut être scanné et dupliqué à l'identique en quelques secondes à l'aide d'un simple smartphone et d'une carte vierge à 1 €. Pour la salle des coffres, ce système équivaudrait à installer une serrure dont tout le monde peut faire un double au supermarché. Pour ces locaux sensibles, il est indispensable d'employer des badges chiffrés infalsifiables (norme MIFARE DESFire), renforcés par un code secret (double facteur) et des flux réseau chiffrés.
+
+---
+### Question 35 : Matrice de traçabilité et validation des exigences SysML
+
+La matrice ci-dessous confronte chaque exigence définie dans le diagramme d'exigences (`req - Identification par badges des salariés`) avec la solution technique implémentée.
+
+#### 1. Matrice de conformité
+
+| Exigence | Intitulé | Statut | Justification & Validation technique |
+|:---|:---|:---:|:---|
+| **Id: 1** | Identification RFID des salariés | **Conforme** | Chaîne complète opérationnelle : lecteur RFID -> ESP32 -> Wi-Fi -> API FastAPI -> Base PostgreSQL -> Dashboard Web. |
+| **Id: 1.1** | Lecture RFID (13,56 MHz) | **Conforme** | Le module MFRC522 relié au bus VSPI lit sans contact les badges MIFARE Classic 1K conformes ISO/IEC 14443-A. |
+| **Id: 1.1.1** | Rapidité de lecture (< 300 ms) | **Partiellement conforme** | La capture matérielle SPI prend moins de 50 ms. Le cycle global (requête HTTP + transaction SQL) respecte la limite en conditions nominales, mais peut être ralenti en cas de gigue (*jitter*) Wi-Fi. |
+| **Id: 1.2** | Identification du salarié | **Conforme** | L'API FastAPI résout l'association entre le NUID matériel et l'identité du collaborateur (`users.nom`, `users.prenom`). |
+| **Id: 1.3** | Enregistrement des passages | **Conforme** | Chaque tentative de badgeage est persistée dans la table PostgreSQL `access_logs`. |
+| **Id: 1.3.1** | Données enregistrées | **Conforme** | Les champs `nuid`, `user_id`, `zone_id`, `timestamp` et `granted` sont stockés à chaque événement. |
+| **Id: 1.4** | Affichage du résultat | **Conforme** | Page web servie sur le réseau local (`/static/index.html`) affichant l'état du dernier badgeage. |
+| **Id: 1.5** | Contrôle des droits | **Conforme** | Contrôle strict via la table relationnelle `access_rights` appliquant la politique de refus par défaut (*default deny*). |
+| **Id: 1.5.1** | Édition des droits par le RH | **Partiellement conforme** | Les opérations CRUD d'administration sont réalisables via l'API (Swagger UI), mais aucune interface graphique conviviale (tableau de bord RH) n'a été développée dans ce prototype. |
+
+#### 2. Analyse des exigences non totalement couvertes et limites du prototype
+1. **Ergonomie d'administration RH (`Id: 1.5.1`) :** La gestion des utilisateurs et des permissions exige l'usage d'outils techniques (documentation interactive Swagger ou requêtes SQL `psql`), ce qui est inadapté pour un usage autonome par un responsable RH.
+2. **Mesure formelle de la performance temporelle (`Id: 1.1.1`) :** Le temps d'exécution global n'a pas fait l'objet d'une métrologie instrumentée sur banc d'essai (analyseur logique ou oscilloscope sur les broches SPI/GPIO).
+3. **Sécurité et continuité de service :** Bien que non explicitées dans le diagramme d'exigences initial, les faiblesses révélées par l'analyse (absence de chiffrement TLS, NUID clonable sans cryptographie, absence de fonctionnement hors-ligne en cas de coupure serveur) constituent des écarts majeurs pour un déploiement en environnement de production réel.
