@@ -185,7 +185,26 @@ La LED intégrée (GPIO 2) est configurée en sortie dans `setup()`. Dès qu'un 
   Utiliser des variables d'environnement stockées dans un fichier externe (généralement nommé `.env`). Le fichier `docker-compose.yml` fait alors appel à une variable (ex: `POSTGRES_PASSWORD=${DB_PASSWORD}`). Il est crucial d'ajouter ensuite ce fichier `.env` dans le fichier `.gitignore` afin qu'il ne soit jamais publié sur le dépôt Git. En production avancée, on utilise des gestionnaires dédiés comme *Docker Secrets*.
 
 ---
-  ### Question 20 : Rôle du fichier requirements.txt
+---
+
+### Question 19 : Modèle de données (Diagramme de classes) et clé primaire
+
+#### 1. Entités et cardinalités
+* **Users** (`id` [PK], `nom`, `prenom`, `email`, `actif`)
+* **Badges** (`id` [PK], `nuid` [Unique, Index], `user_id` [FK], `actif`)
+* **Zones** (`id` [PK], `nom` [Unique], `description`)
+* **AccessRight** (`id` [PK], `user_id` [FK], `zone_id` [FK], `Unique(user_id, zone_id)`)
+* **AccessLog** (`id` [PK], `nuid`, `user_id` [FK, Nullable], `zone_id` [FK], `timestamp`, `granted`)
+
+*(Insérer le diagramme de classes validé dans le rapport Word).*
+
+#### 2. Justification de la clé primaire du badge
+Le NUID n'est pas un bon candidat pour faire office de clé primaire (PK) :
+* **Non-unicité absolue :** L'espace d'adressage sur 4 octets ($2^{32}$) a été saturé industriellement par les constructeurs, ne garantissant plus l'unicité mondiale (d'où le terme *Non-Unique IDentifier*). De plus, l'existence de badges à UID modifiable (*magic cards*) permet d'usurper n'importe quelle valeur.
+* **Évolutivité de l'architecture :** Utiliser une clé primaire artificielle technique (`id: int`) évite de répercuter d'éventuels changements de technologie de badges (ex. passage à MIFARE DESFire 7 octets) sur toutes les clés étrangères des tables liées (`access_logs`). Le NUID doit donc rester une clé métier candidate indexée (`index=True`) et unique (`unique=True`).
+
+---
+### Question 20 : Rôle du fichier requirements.txt
 
 * **Rôle général :**  
   Le fichier `requirements.txt` permet de figer et de centraliser la liste de toutes les dépendances logicielles (bibliothèques tierces) requises pour exécuter l'application Python. Il assure la portabilité et la reproductibilité de l'environnement de développement et de déploiement en permettant une installation automatisée via la commande `pip install -r requirements.txt`.
@@ -210,7 +229,7 @@ La LED intégrée (GPIO 2) est configurée en sortie dans `setup()`. Dès qu'un 
   Crée un index (B-Tree) dans la base de données sur la colonne `nuid`. Sachant que chaque pointage interroge la base via cet identifiant pour identifier le salarié, l'index remplace un parcours séquentiel complet (*table scan*) par une recherche logarithmique $O(\log N)$. Cela accélère considérablement la requête SQL et permet de garantir un temps de validation sous les 300 ms.
 
   ---
-  ### Question 22 : Configuration réseau d'Uvicorn (`0.0.0.0` vs `127.0.0.1`)
+### Question 22 : Configuration réseau d'Uvicorn (`0.0.0.0` vs `127.0.0.1`)
 
 * **Raison du choix `0.0.0.0` :**  
   L'adresse `127.0.0.1` restreint les connexions à la boucle locale de l'ordinateur. Le paramètre `--host 0.0.0.0` lie le serveur Uvicorn à l'ensemble des interfaces réseau de la machine hôte. Cela permet à des clients distants sur le réseau local, en particulier l'ESP32 connecté en Wi-Fi, d'atteindre l'API via son adresse IP locale.
@@ -278,7 +297,7 @@ L'initialisation des enregistrements et des autorisations a été effectuée dep
   * Conformément au principe du **refus par défaut (*default deny*)**, aucun enregistrement n'a été créé pour l'utilisateur `id: 2`. En l'absence de correspondance dans la table `access_rights`, le système refusera systématiquement l'accès à la « Salle serveur » pour son badge.
 
   ---
-  ### Question 24 : Vérification du contenu de la base de données PostgreSQL
+### Question 24 : Vérification du contenu de la base de données PostgreSQL
 
 La persistance des données a été vérifiée directement dans le conteneur Docker à l'aide de l'outil `psql`.
 
@@ -286,6 +305,7 @@ La persistance des données a été vérifiée directement dans le conteneur Doc
 ```bash
 docker exec -it cogip-db psql -U cogip -d pointeuse
 '''
+
 ---
 ### Question 25 : Intégration Wi-Fi et transmission HTTP sur l'ESP32
 
@@ -331,10 +351,10 @@ Le tableau de recette ci-dessous présente la validation fonctionnelle de l'ense
 ---
 ### Question 28 : Capture et analyse protocolaire Wireshark
 
-Une capture réseau a été réalisée sur l'interface Wi-Fi de la machine hôte lors du passage d'un badge valide afin d'analyser la structure des échanges HTTP.
+Une capture réseau a été réalisée sur l'interface Ethernet de la machine hôte lors du passage d'un badge valide afin d'analyser la structure des échanges HTTP.
 
 #### 1. Paramètres de capture
-* **Interface écoutée :** Wi-Fi (`SFR_F2CF`)
+* **Interface écoutée :** Ethernet (liaison filaire RJ45 reliée au routeur)
 * **Filtre appliqué :** `http && ip.addr == 192.168.1.36`
 * **Hôtes :** ESP32 (`192.168.1.36`) et Serveur API (`192.168.1.5:8000`)
 
