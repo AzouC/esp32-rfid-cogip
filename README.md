@@ -249,4 +249,4 @@ Les diagrammes (cas d'utilisation, classes, exigences SysML) figurent dans le ra
 
 ## Auteur
 
-**Malo** — BTS CIEL (option IR), 1ʳᵉ année.
+**Malo** — BTS CIEL (option IR).
