@@ -304,8 +304,7 @@ La persistance des données a été vérifiée directement dans le conteneur Doc
 #### 1. Connexion au conteneur
 ```bash
 docker exec -it cogip-db psql -U cogip -d pointeuse
-'''
-
+```
 ---
 ### Question 25 : Intégration Wi-Fi et transmission HTTP sur l'ESP32
 
