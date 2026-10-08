@@ -446,3 +446,26 @@ L'existence de ces composants rend le clonage d'un badge trivial, rapide et éco
 1. Capture furtive du NUID d'un collaborateur autorisé (ex. Alice Dupont : `F7CD8E62`).
 2. Flashage immédiat du NUID sur une carte magique.
 3. Présentation du clone devant la pointeuse : le lecteur RC522 et l'API FastAPI ne vérifiant que cette valeur statique, le clone est accepté avec les accès privilégiés associés sans éveiller de soupçon dans la base de données.
+
+---
+### Question 33 : Principes des attaques par rejeu et par relais
+
+#### 1. Attaque par rejeu (*Replay Attack*)
+* **Principe général :** Capture passive d'une communication légitime lors d'un échange autorisé, suivie de sa réémission ultérieure vers le récepteur pour usurper l'identité de l'émetteur et déclencher une action non autorisée.
+* **Manifestation sur le système COGIP :**
+  * **Sur le canal radio RFID :** Un boîtier radio enregistre les trames d'identification d'un salarié légitime lors de son passage. L'attaquant rejoue ensuite cet enregistrement devant la pointeuse pour ouvrir la porte.
+  * **Sur le canal réseau HTTP :** La requête `POST /api/scan` interceptée avec Wireshark ne comportant ni nonce, ni timestamp dynamique, ni signature cryptographique, l'attaquant peut la rejouer indéfiniment depuis n'importe quelle machine du réseau local (via un simple script `curl`) pour forcer des validations d'accès.
+* **Parade technique :** Intégration d'un défi cryptographique aléatoire à usage unique (*nonce / challenge-response*), d'un horodatage vérifié et de jetons éphémères signés (HMAC/JWT).
+
+#### 2. Attaque par relais (*Relay Attack*)
+* **Principe général :** Prolongation artificielle et en temps réel de la distance physique séparant le badge légitime du lecteur de contrôle d'accès, à l'insu complet de son porteur.
+* **Scénario d'exploitation :**
+  1. Deux attaquants coordonnés utilisent deux dispositifs interconnectés par une liaison radio rapide longue portée (4G/5G ou Wi-Fi) : un *proxy-lecteur* (proche de la victime) et un *proxy-badge* (devant la porte cible).
+  2. Lorsque la pointeuse émet un champ pour interroger un badge, le proxy-badge transfère les trames au proxy-lecteur.
+  3. Le proxy-lecteur sollicite le badge de la victime (resté dans sa poche ou son sac) et relaie sa réponse en sens inverse vers la porte.
+  4. L'accès est validé alors que le salarié se trouve dans une autre pièce ou hors du site.
+* **Spécificité et gravité :** Cette attaque contourne même les badges équipés de cryptographie forte (AES/DESFire), car les assaillants se contentent de relayer les trames sans avoir besoin de les déchiffrer.
+* **Parades techniques :**
+  * Mesure du temps de propagation aller-retour (*Round Trip Time* / protocoles de *Distance Bounding*) : rejet de la transaction si le délai excède quelques nanosecondes/microsecondes (impossible à respecter si le signal transite par un réseau distant).
+  * Double authentification (MFA) combinant le badge avec un code PIN sur clavier ou un contrôle biométrique.
+  * Mesure de protection physique : utilisation d'étuis anti-RFID (cage de Faraday) bloquant le champ magnétique au repos.
